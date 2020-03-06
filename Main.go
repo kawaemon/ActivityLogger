@@ -12,7 +12,7 @@ import (
 )
 
 var (
-	WriterChan chan bool
+	WriterChan = make(chan bool, 1)
 	isActive   = false
 	LogDir     = ""
 )
@@ -47,7 +47,12 @@ func main() {
 	for {
 		EvChan := hook.Start()
 
-		<-EvChan
+		for {
+			c := <-EvChan
+			if c.Kind != hook.HookEnabled {
+				break
+			}
+		}
 
 		isActive = true
 		hook.End()
@@ -88,8 +93,10 @@ func Writer() {
 		err = file.Close()
 		HandleError(err)
 
-		isActive = false
-		WriterChan <- true
+		if isActive {
+			isActive = false
+			WriterChan <- true
+		}
 	}
 }
 
