@@ -12,8 +12,9 @@ import (
 )
 
 var (
-	isActive = false
-	LogDir   = ""
+	WriterChan chan bool
+	isActive   = false
+	LogDir     = ""
 )
 
 func init() {
@@ -43,12 +44,17 @@ func main() {
 	fmt.Println("Running...")
 	go Writer()
 
-	EvChan := hook.Start()
-	defer hook.End()
+	for {
+		EvChan := hook.Start()
 
-	for range EvChan {
+		<-EvChan
+
 		isActive = true
+		hook.End()
+
+		<-WriterChan
 	}
+
 }
 
 func Writer() {
@@ -83,6 +89,7 @@ func Writer() {
 		HandleError(err)
 
 		isActive = false
+		WriterChan <- true
 	}
 }
 
